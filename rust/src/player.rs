@@ -1,6 +1,6 @@
 use godot::classes::{
     input::MouseMode, AnimationPlayer, Camera3D, CharacterBody3D, CollisionShape3D,
-    ICharacterBody3D, Input, Node3D,
+    ICharacterBody3D, Input, Node3D, PhysicsRayQueryParameters3D, RigidBody3D,
 };
 use godot::prelude::*;
 
@@ -145,5 +145,39 @@ impl ICharacterBody3D for Player {
 
         self.base_mut().set_velocity(velocity);
         self.base_mut().move_and_slide();
+
+        // Shooting (left click)
+
+        if Input::singleton().is_action_just_pressed("shoot") {
+            let camera = self.base().get_node_as::<Camera3D>("HeadPivot/Camera3D");
+            let from = camera.get_global_position();
+            let to = from - camera.get_global_transform().basis.col_c() * 100.0;
+
+            let mut space_state = self
+                .base_mut()
+                .get_world_3d()
+                .unwrap()
+                .get_direct_space_state()
+                .unwrap();
+
+            if let Some(query) = PhysicsRayQueryParameters3D::create(from, to) {
+                let result = space_state.intersect_ray(&query);
+                if !result.is_empty() {
+                    godot_print!("Hit: {:?}", result);
+
+                    if let Some(mut body) = result
+                        .get("collider")
+                        .and_then(|n| n.try_to::<Gd<RigidBody3D>>().ok())
+                    {
+                        let hit_position = result
+                            .get("position")
+                            .and_then(|v| v.try_to::<Vector3>().ok())
+                            .unwrap_or(from);
+                        body.upcast_mut::<RigidBody3D>()
+                            .apply_impulse((from - hit_position) * -3.0);
+                    }
+                }
+            }
+        }
     }
 }
