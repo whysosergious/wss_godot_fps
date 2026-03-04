@@ -24,6 +24,9 @@ size = Vector3(2, 1, 2)
 [sub_resource type="BoxShape3D" id="BoxShape3D_7dm0k"]
 size = Vector3(1, 2, 1)
 
+[sub_resource type="BoxMesh" id="BoxMesh_ig7tw"]
+size = Vector3(0.1, 0.2, 0.4)
+
 [node name="Node3D" type="Node3D" unique_id=1876840914]
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=1210508729]
@@ -61,3 +64,7 @@ shape = SubResource("BoxShape3D_7dm0k")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, 0)
 
 [node name="Camera3D" type="Camera3D" parent="Player/HeadPivot" unique_id=1857015789]
+
+[node name="Gun" type="MeshInstance3D" parent="Player/HeadPivot" unique_id=586165889]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5786876, -0.39251852, -1.2237474)
+mesh = SubResource("BoxMesh_ig7tw")

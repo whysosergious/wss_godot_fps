@@ -1,6 +1,6 @@
 use godot::classes::{
     input::MouseMode, AnimationPlayer, Camera3D, CharacterBody3D, CollisionShape3D,
-    ICharacterBody3D, Input, Node3D, PhysicsRayQueryParameters3D, RigidBody3D,
+    ICharacterBody3D, Input, MeshInstance3D, Node3D, PhysicsRayQueryParameters3D, RigidBody3D,
 };
 use godot::prelude::*;
 
@@ -28,12 +28,19 @@ struct Player {
     #[export]
     bob_amount: f32,
     #[export]
+    weapon_bob_time: f32,
+    #[export]
     weapon_bob_amount: f32,
     #[export]
     head_base_pos: Vector3,
     #[export]
     head_target_pos: Vector3,
-    // camera: Option<Gd<Camera3D>>,
+    gun: Option<Gd<MeshInstance3D>>,
+    camera: Option<Gd<Camera3D>>,
+    #[export]
+    gun_base_pos: Vector3,
+    #[export]
+    gun_target_pos: Vector3,
 }
 
 #[godot_api]
@@ -53,21 +60,41 @@ impl ICharacterBody3D for Player {
             ads_fov: 90.0,
             bob_time: 0.0,
             bob_amount: 0.1,
-            weapon_bob_amount: 0.02,
+            weapon_bob_time: 0.0,
+            weapon_bob_amount: 0.03,
             head_base_pos: Vector3::ZERO,
             head_target_pos: Vector3::ZERO,
-            // camera: base.get_node_as::<Camera3D>("Camera"),
+            camera: None,
+            gun: None,
+            gun_base_pos: Vector3::ZERO,
+            gun_target_pos: Vector3::ZERO,
         }
     }
 
     fn ready(&mut self) {
         let head = self.base().get_node_as::<Node3D>("HeadPivot");
+
         self.head_base_pos = head.get_position();
+
+        let gun_node = self
+            .base_mut()
+            .get_node_as::<MeshInstance3D>("HeadPivot/Gun");
+        self.gun_base_pos = gun_node.get_position();
+        self.gun = Some(gun_node);
+
+        let camera_node = self.base().get_node_as::<Camera3D>("HeadPivot/Camera");
+        self.camera = Some(camera_node);
+
         godot_print!("Head base pos: {:?}", self.head_base_pos);
     }
 
     fn physics_process(&mut self, delta: f64) {
         let mut head = self.base().get_node_as::<Node3D>("HeadPivot");
+
+        // AUTO-CAPTURE mouse when window focused
+        if Input::singleton().get_mouse_mode() != MouseMode::CAPTURED {
+            Input::singleton().set_mouse_mode(MouseMode::CAPTURED);
+        }
 
         // Mouse look
         if Input::singleton().is_action_pressed("ui_cancel") {
@@ -119,6 +146,27 @@ impl ICharacterBody3D for Player {
             head.set_position(new_pos);
         }
 
+        // WEAPON BOB (ALWAYS TRACKS MOUSE, INDEPENDENT OF HEAD)
+        if let Some(mut gun) = self.gun.take() {
+            if speed > 0.1 {
+                self.weapon_bob_time += delta as f32 * speed;
+                let weapon_bob = Vector3::new(
+                    self.weapon_bob_time.sin() * self.weapon_bob_amount,
+                    self.weapon_bob_time.sin() * self.weapon_bob_amount * 0.5,
+                    0.0,
+                );
+                self.gun_target_pos = self.gun_base_pos + weapon_bob;
+            } else {
+                self.gun_target_pos = self.gun_base_pos;
+            }
+
+            let current_pos = gun.get_position();
+            let new_pos = current_pos.lerp(self.gun_target_pos, 10.0 * delta as f32);
+            gun.set_position(new_pos);
+
+            self.gun = Some(gun);
+        }
+
         // input
         let input_dir =
             Input::singleton().get_vector("move_left", "move_right", "move_forward", "move_back");
@@ -146,8 +194,7 @@ impl ICharacterBody3D for Player {
         self.base_mut().set_velocity(velocity);
         self.base_mut().move_and_slide();
 
-        // Shooting (left click)
-
+        // Shooting/pushing (left click)
         if Input::singleton().is_action_just_pressed("shoot") {
             let camera = self.base().get_node_as::<Camera3D>("HeadPivot/Camera3D");
             let from = camera.get_global_position();
