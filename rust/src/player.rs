@@ -1,4 +1,7 @@
-use godot::classes::{AnimationPlayer, CharacterBody3D, CollisionShape3D, ICharacterBody3D, Input};
+use godot::classes::{
+    input::MouseMode, AnimationPlayer, Camera3D, CharacterBody3D, CollisionShape3D,
+    ICharacterBody3D, Input, Node3D,
+};
 use godot::prelude::*;
 
 #[derive(GodotClass, Debug)]
@@ -12,37 +15,111 @@ struct Player {
     jump: f32,
     #[export]
     gravity: f32,
+    #[export]
+    mouse_sensitivity: f32,
+    #[export]
+    pitch: f32,
+    #[export]
+    fov: f32,
+    #[export]
+    ads_fov: f32,
+    #[export]
+    bob_time: f32,
+    #[export]
+    bob_amount: f32,
+    #[export]
+    weapon_bob_amount: f32,
+    #[export]
+    head_base_pos: Vector3,
+    #[export]
+    head_target_pos: Vector3,
+    // camera: Option<Gd<Camera3D>>,
 }
 
 #[godot_api]
-impl Player {
-    #[func]
-    fn init(&mut self) {
-        godot_print!("player init");
-    }
-
-    #[func]
-    fn ready(&mut self) {
-        godot_print!("player ready");
-    }
-}
+impl Player {}
 
 #[godot_api]
 impl ICharacterBody3D for Player {
     fn init(base: Base<CharacterBody3D>) -> Self {
-        let s = Self {
-            base: base,
-            speed: 1.0,
-            jump: 1.0,
-            gravity: 0.5,
-        };
+        Self {
+            base,
+            speed: 5.0,
+            jump: 4.5,
+            gravity: 10.0,
+            mouse_sensitivity: 0.00002,
+            pitch: 0.0,
+            fov: 90.0,
+            ads_fov: 90.0,
+            bob_time: 0.0,
+            bob_amount: 0.1,
+            weapon_bob_amount: 0.02,
+            head_base_pos: Vector3::ZERO,
+            head_target_pos: Vector3::ZERO,
+            // camera: base.get_node_as::<Camera3D>("Camera"),
+        }
+    }
 
-        godot_print!("player init - {:?}", s);
-
-        s
+    fn ready(&mut self) {
+        let head = self.base().get_node_as::<Node3D>("HeadPivot");
+        self.head_base_pos = head.get_position();
+        godot_print!("Head base pos: {:?}", self.head_base_pos);
     }
 
     fn physics_process(&mut self, delta: f64) {
+        let mut head = self.base().get_node_as::<Node3D>("HeadPivot");
+
+        // Mouse look
+        if Input::singleton().is_action_pressed("ui_cancel") {
+            // Escape
+            Input::singleton().set_mouse_mode(MouseMode::VISIBLE);
+        } else {
+            Input::singleton().set_mouse_mode(MouseMode::CAPTURED);
+        }
+
+        let mouse_delta = Input::singleton().get_last_mouse_velocity();
+        let yaw = mouse_delta.x * self.mouse_sensitivity;
+        let pitch_input = mouse_delta.y * self.mouse_sensitivity;
+
+        self.pitch = pitch_input;
+        self.pitch = self.pitch.clamp(-1.55, 1.55);
+
+        self.base_mut().rotate_y(-yaw); // Yaw whole body
+
+        let current_rot = head.get_rotation();
+        let new_rot = Vector3::new(
+            (current_rot.x - pitch_input).clamp(-1.55, 1.55),
+            current_rot.y,
+            current_rot.z,
+        );
+        head.set_rotation(new_rot);
+
+        // head bob
+        let velocity = self.base().get_velocity();
+        let velocity_h = Vector3::new(velocity.x, 0.0, velocity.z);
+        let speed = velocity_h.length();
+
+        if speed > 0.1 {
+            self.bob_time += delta as f32 * speed * 2.0;
+            let bob_offset = Vector3::new(
+                (self.bob_time.sin() * 0.5).abs() * self.bob_amount,
+                self.bob_time.sin() * self.bob_amount,
+                0.0,
+            );
+            self.head_target_pos = self.head_base_pos + bob_offset; // USE STORED BASE
+
+            let current_pos = head.get_position();
+            let new_pos = current_pos.lerp(self.head_target_pos, 10.0 * delta as f32);
+            head.set_position(new_pos);
+        } else {
+            self.bob_time = 0.0;
+            let new_pos = head
+                .get_position()
+                .lerp(self.head_base_pos, 2.0 * delta as f32);
+            head.set_position(new_pos);
+        }
+
+        // input
         let input_dir =
             Input::singleton().get_vector("move_left", "move_right", "move_forward", "move_back");
 
@@ -50,14 +127,12 @@ impl ICharacterBody3D for Player {
             self.base().get_global_transform().basis * Vector3::new(input_dir.x, 0.0, input_dir.y);
         let mut velocity = self.base().get_velocity();
 
-        godot_print!("dir - {}", direction);
-
         if self.base().is_on_floor() {
             if Input::singleton().is_action_just_pressed("jump") {
-                velocity.y = self.jump; // FIX 1
+                velocity.y = self.jump;
             }
         } else {
-            velocity.y -= self.gravity * delta as f32; // FIX 2
+            velocity.y -= self.gravity * delta as f32;
         }
 
         if input_dir != Vector2::ZERO {
