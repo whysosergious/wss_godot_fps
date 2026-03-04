@@ -1,0 +1,61 @@
+[gd_scene format=3 uid="uid://b4s3qnwq485ds"]
+
+[sub_resource type="PanoramaSkyMaterial" id="PanoramaSkyMaterial_7dm0k"]
+
+[sub_resource type="Sky" id="Sky_ig7tw"]
+sky_material = SubResource("PanoramaSkyMaterial_7dm0k")
+
+[sub_resource type="Environment" id="Environment_0xm2m"]
+background_mode = 2
+sky = SubResource("Sky_ig7tw")
+
+[sub_resource type="BoxMesh" id="BoxMesh_7dm0k"]
+size = Vector3(20, 0.1, 20)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_ig7tw"]
+size = Vector3(20, 0.1, 20)
+
+[sub_resource type="BoxMesh" id="BoxMesh_0xm2m"]
+size = Vector3(2, 1, 2)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_h2yge"]
+size = Vector3(2, 1, 2)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_7dm0k"]
+size = Vector3(1, 2, 1)
+
+[node name="Node3D" type="Node3D" unique_id=1876840914]
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=1210508729]
+transform = Transform3D(0.70710677, -0.49999997, 0.49999997, 0, 0.70710677, 0.70710677, -0.70710677, -0.49999997, 0.49999997, 0, 1, 0)
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1155144911]
+environment = SubResource("Environment_0xm2m")
+
+[node name="Floor" type="StaticBody3D" parent="." unique_id=106021996]
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Floor" unique_id=872867013]
+mesh = SubResource("BoxMesh_7dm0k")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Floor" unique_id=895392283]
+shape = SubResource("BoxShape3D_ig7tw")
+
+[node name="Table" type="RigidBody3D" parent="." unique_id=249782184]
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Table" unique_id=1634283830]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+mesh = SubResource("BoxMesh_0xm2m")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Table" unique_id=9244072]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+shape = SubResource("BoxShape3D_h2yge")
+
+[node name="Player" type="Player" parent="." unique_id=1111676245]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.0744805, 1, 0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Player" unique_id=1309413514]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.07620406, 0)
+shape = SubResource("BoxShape3D_7dm0k")
+
+[node name="Camera3D" type="Camera3D" parent="Player" unique_id=1857015789]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7491739, 0)
