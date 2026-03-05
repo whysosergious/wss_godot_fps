@@ -9,11 +9,17 @@ sky_material = SubResource("PanoramaSkyMaterial_7dm0k")
 background_mode = 2
 sky = SubResource("Sky_ig7tw")
 
+[sub_resource type="BoxMesh" id="BoxMesh_1bvp3"]
+size = Vector3(0.1, 100, 200)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_lquwl"]
+size = Vector3(0.1, 100, 200)
+
 [sub_resource type="BoxMesh" id="BoxMesh_7dm0k"]
-size = Vector3(20, 0.1, 20)
+size = Vector3(100, 0.1, 100)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_ig7tw"]
-size = Vector3(20, 0.1, 20)
+size = Vector3(100, 0.1, 100)
 
 [sub_resource type="BoxMesh" id="BoxMesh_0xm2m"]
 size = Vector3(2, 1, 2)
@@ -37,6 +43,16 @@ transform = Transform3D(0.70710677, -0.49999997, 0.49999997, 0, 0.70710677, 0.70
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1155144911]
 environment = SubResource("Environment_0xm2m")
+
+[node name="BGWallNorth" type="StaticBody3D" parent="." unique_id=338298090]
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="BGWallNorth" unique_id=1726959465]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50, 50, 0)
+mesh = SubResource("BoxMesh_1bvp3")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="BGWallNorth" unique_id=1394325950]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50, 50, 0)
+shape = SubResource("BoxShape3D_lquwl")
 
 [node name="Floor" type="StaticBody3D" parent="." unique_id=106021996]
 
