@@ -25,7 +25,10 @@ size = Vector3(2, 1, 2)
 size = Vector3(1, 2, 1)
 
 [sub_resource type="BoxMesh" id="BoxMesh_ig7tw"]
-size = Vector3(0.1, 0.2, 0.4)
+size = Vector3(0.075, 0.2, 0.4)
+
+[sub_resource type="BoxMesh" id="BoxMesh_h2yge"]
+size = Vector3(0.175, 0.175, 0.175)
 
 [node name="Node3D" type="Node3D" unique_id=1876840914]
 
@@ -63,8 +66,22 @@ shape = SubResource("BoxShape3D_7dm0k")
 [node name="HeadPivot" type="Node3D" parent="Player" unique_id=1825325563]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, 0)
 
-[node name="Camera3D" type="Camera3D" parent="Player/HeadPivot" unique_id=1857015789]
+[node name="Camera" type="Camera3D" parent="Player/HeadPivot" unique_id=1857015789]
 
-[node name="Gun" type="MeshInstance3D" parent="Player/HeadPivot" unique_id=586165889]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5786876, -0.39251852, -1.2237474)
+[node name="Hands" type="Node3D" parent="Player/HeadPivot" unique_id=1448242996]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.57348806, -0.39865232, -1.0857469)
+
+[node name="RightHand" type="MeshInstance3D" parent="Player/HeadPivot/Hands" unique_id=586165889]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0051995516, 0.006133795, -0.13800049)
 mesh = SubResource("BoxMesh_ig7tw")
+
+[node name="LeftHand" type="MeshInstance3D" parent="Player/HeadPivot/Hands" unique_id=2055143708]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.017975688, -0.07709336, 0.009564519)
+mesh = SubResource("BoxMesh_h2yge")
+
+[node name="CrosshairLayer" type="CanvasLayer" parent="Player" unique_id=2144846380]
+
+[node name="CrosshairDot" type="ColorRect" parent="Player/CrosshairLayer" unique_id=312622786]
+offset_right = 4.0
+offset_bottom = 4.0
+color = Color(1, 0, 0, 1)

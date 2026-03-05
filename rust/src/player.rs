@@ -1,6 +1,8 @@
+#[allow(unused_variables, unused_imports)]
 use godot::classes::{
-    input::MouseMode, AnimationPlayer, Camera3D, CharacterBody3D, CollisionShape3D,
-    ICharacterBody3D, Input, MeshInstance3D, Node3D, PhysicsRayQueryParameters3D, RigidBody3D,
+    input::MouseMode, AnimationPlayer, Camera3D, CanvasLayer, CharacterBody3D, CollisionShape3D,
+    ColorRect, ICharacterBody3D, Input, MeshInstance3D, Node3D, PhysicsRayQueryParameters3D,
+    RigidBody3D,
 };
 use godot::prelude::*;
 
@@ -23,24 +25,24 @@ struct Player {
     fov: f32,
     #[export]
     ads_fov: f32,
-    #[export]
     bob_time: f32,
     #[export]
     bob_amount: f32,
-    #[export]
-    weapon_bob_time: f32,
-    #[export]
-    weapon_bob_amount: f32,
-    #[export]
     head_base_pos: Vector3,
-    #[export]
     head_target_pos: Vector3,
-    gun: Option<Gd<MeshInstance3D>>,
     camera: Option<Gd<Camera3D>>,
+    hands: Option<Gd<Node3D>>,
+    hands_base_pos: Vector3,
+
+    // crosshair
     #[export]
-    gun_base_pos: Vector3,
-    #[export]
-    gun_target_pos: Vector3,
+    crosshair_visible: bool,
+    crosshair_pos: Vector2,
+    crosshair_node: Option<Gd<ColorRect>>,
+    crosshair_offset: Vector2,
+
+    deadzone_percent: f32,
+    last_mouse_pos: Vector2,
 }
 
 #[godot_api]
@@ -54,72 +56,120 @@ impl ICharacterBody3D for Player {
             speed: 5.0,
             jump: 4.5,
             gravity: 10.0,
-            mouse_sensitivity: 0.00002,
+            mouse_sensitivity: 1.0,
             pitch: 0.0,
             fov: 90.0,
             ads_fov: 90.0,
             bob_time: 0.0,
             bob_amount: 0.1,
-            weapon_bob_time: 0.0,
-            weapon_bob_amount: 0.03,
             head_base_pos: Vector3::ZERO,
             head_target_pos: Vector3::ZERO,
             camera: None,
-            gun: None,
-            gun_base_pos: Vector3::ZERO,
-            gun_target_pos: Vector3::ZERO,
+            hands: None,
+            hands_base_pos: Vector3::ZERO,
+
+            // crosshair
+            crosshair_visible: true,
+            crosshair_pos: Vector2::ZERO,
+            crosshair_node: None,
+            crosshair_offset: Vector2::ZERO,
+
+            deadzone_percent: 0.6,
+            last_mouse_pos: Vector2::ZERO,
         }
     }
 
     fn ready(&mut self) {
+        Input::singleton().set_mouse_mode(MouseMode::HIDDEN);
+
         let head = self.base().get_node_as::<Node3D>("HeadPivot");
 
         self.head_base_pos = head.get_position();
 
-        let gun_node = self
-            .base_mut()
-            .get_node_as::<MeshInstance3D>("HeadPivot/Gun");
-        self.gun_base_pos = gun_node.get_position();
-        self.gun = Some(gun_node);
+        let hands_node = self.base_mut().get_node_as::<Node3D>("HeadPivot/Hands");
+        self.hands_base_pos = hands_node.get_position();
+        self.hands = Some(hands_node);
 
         let camera_node = self.base().get_node_as::<Camera3D>("HeadPivot/Camera");
         self.camera = Some(camera_node);
 
+        let crosshair_node = self
+            .base()
+            .get_node_as::<ColorRect>("CrosshairLayer/CrosshairDot");
+        let crosshair_size = crosshair_node.get_size();
+        self.crosshair_offset = crosshair_size / 2.0;
+        self.crosshair_node = Some(crosshair_node);
+
+        let viewport = self.base().get_viewport().unwrap();
+        let viewport_size = viewport.get_visible_rect().size;
+        let deadzone_size = viewport_size * self.deadzone_percent;
+        let padding = (viewport_size - deadzone_size) / 2.0;
+
+        // CRITICAL: Initialize at EXACT deadzone center
+        self.crosshair_pos = Vector2::ZERO;
+        self.last_mouse_pos = padding + (deadzone_size / 2.0);
+
+        godot_print!("Crosshair node: {:?}", self.crosshair_node.is_some());
         godot_print!("Head base pos: {:?}", self.head_base_pos);
+    }
+
+    fn process(&mut self, _delta: f64) {
+        // *************************************
+        // ---------------------------------------- start wip chunk
+        // *************************************
+
+        let viewport = self.base().get_viewport().unwrap();
+        let viewport_size = viewport.get_visible_rect().size;
+        let true_screen_center = viewport_size / 2.0;
+
+        let deadzone_size = viewport_size * self.deadzone_percent;
+        let padding = (viewport_size - deadzone_size) / 2.0;
+        let screen_center = padding + (deadzone_size / 2.0);
+
+        let mouse_screen_pos = viewport.get_mouse_position();
+
+        // Velocity = mouse delta * sensitivity
+        let mouse_velocity = (mouse_screen_pos - self.last_mouse_pos) * self.mouse_sensitivity;
+        self.crosshair_pos += mouse_velocity;
+
+        let max_offset = deadzone_size / 2.0;
+        self.crosshair_pos = self.crosshair_pos.clamp(-max_offset, max_offset);
+
+        self.last_mouse_pos = mouse_screen_pos;
+
+        godot_print!("cp: {:?} | vel: {:?}", self.crosshair_pos, mouse_velocity);
+
+        if let Some(mut crosshair) = self.crosshair_node.take() {
+            if self.crosshair_visible {
+                let screen_pos = true_screen_center + self.crosshair_pos - self.crosshair_offset;
+                crosshair.set_position(screen_pos);
+                crosshair.show();
+            } else {
+                crosshair.hide();
+            }
+            self.crosshair_node = Some(crosshair);
+        }
+
+        // *************************************
+        // ---------------------------------------- end wip chunk
+        // *************************************
     }
 
     fn physics_process(&mut self, delta: f64) {
         let mut head = self.base().get_node_as::<Node3D>("HeadPivot");
 
-        // AUTO-CAPTURE mouse when window focused
-        if Input::singleton().get_mouse_mode() != MouseMode::CAPTURED {
-            Input::singleton().set_mouse_mode(MouseMode::CAPTURED);
-        }
-
-        // Mouse look
-        if Input::singleton().is_action_pressed("ui_cancel") {
-            // Escape
-            Input::singleton().set_mouse_mode(MouseMode::VISIBLE);
-        } else {
-            Input::singleton().set_mouse_mode(MouseMode::CAPTURED);
-        }
-
-        let mouse_delta = Input::singleton().get_last_mouse_velocity();
-        let yaw = mouse_delta.x * self.mouse_sensitivity;
-        let pitch_input = mouse_delta.y * self.mouse_sensitivity;
-
-        self.pitch = pitch_input;
-        self.pitch = self.pitch.clamp(-1.55, 1.55);
-
-        self.base_mut().rotate_y(-yaw); // Yaw whole body
-
-        let current_rot = head.get_rotation();
-        let new_rot = Vector3::new(
-            (current_rot.x - pitch_input).clamp(-1.55, 1.55),
-            current_rot.y,
-            current_rot.z,
-        );
-        head.set_rotation(new_rot);
+        // // AUTO-CAPTURE mouse when window focused
+        // if Input::singleton().get_mouse_mode() != MouseMode::CAPTURED {
+        //     Input::singleton().set_mouse_mode(MouseMode::CAPTURED);
+        // }
+        //
+        // // Mouse look
+        // if Input::singleton().is_action_pressed("ui_cancel") {
+        //     // Escape
+        //     Input::singleton().set_mouse_mode(MouseMode::VISIBLE);
+        // } else {
+        //     Input::singleton().set_mouse_mode(MouseMode::CAPTURED);
+        // }
 
         // head bob
         let velocity = self.base().get_velocity();
@@ -144,27 +194,6 @@ impl ICharacterBody3D for Player {
                 .get_position()
                 .lerp(self.head_base_pos, 2.0 * delta as f32);
             head.set_position(new_pos);
-        }
-
-        // WEAPON BOB (ALWAYS TRACKS MOUSE, INDEPENDENT OF HEAD)
-        if let Some(mut gun) = self.gun.take() {
-            if speed > 0.1 {
-                self.weapon_bob_time += delta as f32 * speed;
-                let weapon_bob = Vector3::new(
-                    self.weapon_bob_time.sin() * self.weapon_bob_amount,
-                    self.weapon_bob_time.sin() * self.weapon_bob_amount * 0.5,
-                    0.0,
-                );
-                self.gun_target_pos = self.gun_base_pos + weapon_bob;
-            } else {
-                self.gun_target_pos = self.gun_base_pos;
-            }
-
-            let current_pos = gun.get_position();
-            let new_pos = current_pos.lerp(self.gun_target_pos, 10.0 * delta as f32);
-            gun.set_position(new_pos);
-
-            self.gun = Some(gun);
         }
 
         // input
