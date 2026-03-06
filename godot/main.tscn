@@ -79,19 +79,19 @@ transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 2.07
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.07620406, 0)
 shape = SubResource("BoxShape3D_7dm0k")
 
-[node name="HeadPivot" type="Node3D" parent="Player" unique_id=1825325563]
+[node name="Head" type="Node3D" parent="Player" unique_id=1825325563]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, 0)
 
-[node name="Camera" type="Camera3D" parent="Player/HeadPivot" unique_id=1857015789]
+[node name="Camera" type="Camera3D" parent="Player/Head" unique_id=1857015789]
 
-[node name="Hands" type="Node3D" parent="Player/HeadPivot" unique_id=1448242996]
+[node name="Hands" type="Node3D" parent="Player/Head" unique_id=1448242996]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.57348806, -0.39865232, -1.0857469)
 
-[node name="RightHand" type="MeshInstance3D" parent="Player/HeadPivot/Hands" unique_id=586165889]
+[node name="RightHand" type="MeshInstance3D" parent="Player/Head/Hands" unique_id=586165889]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0051995516, 0.006133795, -0.13800049)
 mesh = SubResource("BoxMesh_ig7tw")
 
-[node name="LeftHand" type="MeshInstance3D" parent="Player/HeadPivot/Hands" unique_id=2055143708]
+[node name="LeftHand" type="MeshInstance3D" parent="Player/Head/Hands" unique_id=2055143708]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.017975688, -0.07709336, 0.009564519)
 mesh = SubResource("BoxMesh_h2yge")
 
