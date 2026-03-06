@@ -165,7 +165,7 @@ impl ICharacterBody3D for Player {
     }
 
     fn process(&mut self, delta: f64) {
-        let viewport = self.base().get_viewport().unwrap();
+        let mut viewport = self.base().get_viewport().unwrap();
         let viewport_size = viewport.get_visible_rect().size;
         let screen_center = viewport_size / 2.0;
 
@@ -179,7 +179,8 @@ impl ICharacterBody3D for Player {
         let max_offset = deadzone_size / 2.0;
         self.crosshair_pos = self.crosshair_pos.clamp(-max_offset, max_offset);
 
-        self.last_mouse_pos = mouse_screen_pos;
+        viewport.warp_mouse(screen_center);
+        self.last_mouse_pos = screen_center;
 
         if let Some(mut crosshair) = self.crosshair_node.take() {
             if self.crosshair_visible {
