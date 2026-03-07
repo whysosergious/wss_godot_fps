@@ -73,14 +73,14 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
 shape = SubResource("BoxShape3D_h2yge")
 
 [node name="Player" type="Player" parent="." unique_id=1111676245]
-transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 2.0744805, 1, 0)
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 3.584, 0, 0.007226944)
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Player" unique_id=1309413514]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.07620406, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.0526696, 0)
 shape = SubResource("BoxShape3D_7dm0k")
 
 [node name="Head" type="Node3D" parent="Player" unique_id=1825325563]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.744073, 0)
 
 [node name="Camera" type="Camera3D" parent="Player/Head" unique_id=1857015789]
 

@@ -15,7 +15,24 @@ struct Player {
     #[export]
     speed: f32,
     #[export]
+    sprint_speed: f32,
+    #[export]
     jump: f32,
+    #[export]
+    crouch_speed: f32,
+    #[export]
+    crouch_height_scale: f32,
+    #[export]
+    stand_height_scale: f32,
+    #[export]
+    crouch_transition: f32,
+    #[export]
+    is_crouching: bool,
+    #[export]
+    crouch_toggle_mode: bool,
+    target_scale: f32,
+    last_crouch_offset: f32,
+
     #[export]
     gravity: f32,
     #[export]
@@ -82,7 +99,18 @@ impl ICharacterBody3D for Player {
         Self {
             base,
             speed: 5.0,
-            jump: 4.5,
+            sprint_speed: 10.0,
+            jump: 6.0,
+            crouch_speed: 2.5,
+            crouch_height_scale: 0.3,
+            stand_height_scale: 1.0,
+            crouch_transition: 8.0,
+
+            is_crouching: false,
+            crouch_toggle_mode: true,
+            target_scale: 1.0,
+            last_crouch_offset: 0.0,
+
             gravity: 10.0,
             mouse_sensitivity: 1.0,
             pitch: 0.0,
@@ -148,14 +176,16 @@ impl ICharacterBody3D for Player {
         self.crosshair_offset = crosshair_size / 2.0;
         self.crosshair_node = Some(crosshair_node);
 
-        let viewport = self.base().get_viewport().unwrap();
+        let mut viewport = self.base().get_viewport().unwrap();
         let viewport_size = viewport.get_visible_rect().size;
         let deadzone_size = viewport_size * self.deadzone_percent;
         let padding = (viewport_size - deadzone_size) / 2.0;
+        let viewport_center = padding + (deadzone_size / 2.0);
 
-        // CRITICAL: Initialize at EXACT deadzone center
+        // CRITICAL: Initialize at EXACT deadzone/viewport center
         self.crosshair_pos = Vector2::ZERO;
-        self.last_mouse_pos = padding + (deadzone_size / 2.0);
+        viewport.warp_mouse(viewport_center);
+        self.last_mouse_pos = viewport_center;
 
         let head_node = self.base().get_node_as::<Node3D>("Head");
         self.head = Some(head_node);
@@ -310,20 +340,8 @@ impl ICharacterBody3D for Player {
     }
 
     fn physics_process(&mut self, delta: f64) {
+        let input = Input::singleton();
         let mut head = self.base().get_node_as::<Node3D>("Head");
-
-        // // AUTO-CAPTURE mouse when window focused
-        // if Input::singleton().get_mouse_mode() != MouseMode::CAPTURED {
-        //     Input::singleton().set_mouse_mode(MouseMode::CAPTURED);
-        // }
-        //
-        // // Mouse look
-        // if Input::singleton().is_action_pressed("ui_cancel") {
-        //     // Escape
-        //     Input::singleton().set_mouse_mode(MouseMode::VISIBLE);
-        // } else {
-        //     Input::singleton().set_mouse_mode(MouseMode::CAPTURED);
-        // }
 
         // head bob
         let velocity = self.base().get_velocity();
@@ -351,8 +369,7 @@ impl ICharacterBody3D for Player {
         }
 
         // input
-        let input_dir =
-            Input::singleton().get_vector("move_left", "move_right", "move_forward", "move_back");
+        let input_dir = input.get_vector("move_left", "move_right", "move_forward", "move_back");
 
         let direction =
             self.base().get_global_transform().basis * Vector3::new(input_dir.x, 0.0, input_dir.y);
@@ -366,11 +383,61 @@ impl ICharacterBody3D for Player {
             velocity.y -= self.gravity * delta as f32;
         }
 
-        if input_dir != Vector2::ZERO {
-            velocity.x = direction.x * self.speed;
-            velocity.z = direction.z * self.speed;
+        // Crouch & crouch toggle
+        self.is_crouching = if self.crouch_toggle_mode {
+            if input.is_action_just_pressed("crouch") {
+                !self.is_crouching
+            } else {
+                self.is_crouching
+            }
         } else {
-            velocity.x *= 0.8; // Friction
+            input.is_action_pressed("crouch")
+        };
+
+        self.target_scale = if self.is_crouching {
+            self.crouch_height_scale
+        } else {
+            self.stand_height_scale
+        };
+
+        // Scale collision shape directly
+        let mut collision_shape = self
+            .base()
+            .get_node_as::<CollisionShape3D>("CollisionShape3D");
+        let current_scale = collision_shape.get_scale().y;
+        let scale_diff = self.target_scale - current_scale;
+
+        let t = self.crouch_transition * delta as f32;
+        let eased_t = if scale_diff < 0.0 {
+            1.0 - (1.0 - t).powf(2.0)
+        } else {
+            t
+        };
+
+        let new_scale = current_scale + scale_diff * eased_t.min(1.0);
+        collision_shape.set_scale(Vector3::new(1.0, new_scale, 1.0));
+
+        let frame_offset = (self.stand_height_scale - new_scale) - self.last_crouch_offset;
+        self.last_crouch_offset = self.stand_height_scale - new_scale;
+
+        let mut transform = self.base_mut().get_global_transform();
+        transform.origin.y -= frame_offset;
+        self.base_mut().set_global_transform(transform);
+
+        // Speed selection
+        let self_speed = if self.is_crouching {
+            self.crouch_speed
+        } else if input.is_action_pressed("sprint") {
+            self.sprint_speed
+        } else {
+            self.speed
+        };
+
+        if input_dir != Vector2::ZERO {
+            velocity.x = direction.x * self_speed;
+            velocity.z = direction.z * self_speed;
+        } else {
+            velocity.x *= 0.8;
             velocity.z *= 0.8;
         }
 
@@ -378,8 +445,8 @@ impl ICharacterBody3D for Player {
         self.base_mut().move_and_slide();
 
         // Shooting/pushing (left click)
-        if Input::singleton().is_action_just_pressed("shoot") {
-            let camera = self.base().get_node_as::<Camera3D>("Head/Camera3D");
+        if input.is_action_just_pressed("shoot") {
+            let camera = self.base().get_node_as::<Camera3D>("Head/Camera");
             let from = camera.get_global_position();
             let to = from - camera.get_global_transform().basis.col_c() * 100.0;
 
