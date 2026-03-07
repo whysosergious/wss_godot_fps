@@ -1,8 +1,8 @@
 #[allow(unused_imports)]
 use godot::classes::{
-    input::MouseMode, AnimationPlayer, Camera3D, CanvasLayer, CharacterBody3D, CollisionShape3D,
-    ColorRect, ICharacterBody3D, Input, MeshInstance3D, Node3D, PhysicsDirectSpaceState3D,
-    PhysicsRayQueryParameters3D, RigidBody3D,
+    input::MouseMode, AnimationPlayer, Area3D, Camera3D, CanvasLayer, CharacterBody3D,
+    CollisionShape3D, ColorRect, ICharacterBody3D, Input, MeshInstance3D, Node3D,
+    PhysicsDirectSpaceState3D, PhysicsRayQueryParameters3D, RigidBody3D,
 };
 use godot::obj::WithBaseField;
 use godot::prelude::*;
@@ -88,6 +88,10 @@ struct Player {
     body_start_degrees: f32,
     body_rotation_y: f32,
     head: Option<Gd<Node3D>>,
+
+    // climb and vault
+    climb_hitbox: Option<Gd<Area3D>>,
+    mantle_target: Vector3,
 }
 
 #[godot_api]
@@ -152,6 +156,10 @@ impl ICharacterBody3D for Player {
             body_start_degrees: 10.0,
             body_rotation_y: 0.0,
             head: None,
+
+            // climb & vault
+            climb_hitbox: None,
+            mantle_target: Vector3::ZERO,
         }
     }
 
@@ -189,6 +197,8 @@ impl ICharacterBody3D for Player {
 
         let head_node = self.base().get_node_as::<Node3D>("Head");
         self.head = Some(head_node);
+
+        self.climb_hitbox = Some(self.base().get_node_as("ClimbHitbox"));
 
         godot_print!("Crosshair node: {:?}", self.crosshair_node.is_some());
         godot_print!("Head base pos: {:?}", self.head_base_pos);
@@ -383,6 +393,14 @@ impl ICharacterBody3D for Player {
             velocity.y -= self.gravity * delta as f32;
         }
 
+        // *******************************
+        // -------------------------------- start wip chunk
+        // *******************************
+
+        // *******************************
+        // -------------------------------- end wip chunk
+        // *******************************
+
         // Crouch & crouch toggle
         self.is_crouching = if self.crouch_toggle_mode {
             if input.is_action_just_pressed("crouch") {
@@ -444,37 +462,91 @@ impl ICharacterBody3D for Player {
         self.base_mut().set_velocity(velocity);
         self.base_mut().move_and_slide();
 
-        // Shooting/pushing (left click)
-        if input.is_action_just_pressed("shoot") {
-            let camera = self.base().get_node_as::<Camera3D>("Head/Camera");
-            let from = camera.get_global_position();
-            let to = from - camera.get_global_transform().basis.col_c() * 100.0;
+        // point and teleport
+        if Input::singleton().is_action_just_pressed("shoot") {
+            if let Some(hitbox) = &self.climb_hitbox {
+                let player_pos = self.base().get_global_position();
+                let bodies = hitbox.get_overlapping_bodies();
 
-            let mut space_state = self
-                .base_mut()
-                .get_world_3d()
-                .unwrap()
-                .get_direct_space_state()
-                .unwrap();
+                godot_print!("bodies: {}", bodies);
 
-            if let Some(query) = PhysicsRayQueryParameters3D::create(from, to) {
-                let result = space_state.intersect_ray(&query);
-                if !result.is_empty() {
-                    godot_print!("Hit: {:?}", result);
+                for body_rid in bodies.iter_shared() {
+                    let body_node: Option<Gd<Node3D>> = body_rid.try_into().ok();
+                    if let Some(body_node) = body_node {
+                        let body_pos = body_node.get_global_position();
 
-                    if let Some(mut body) = result
-                        .get("collider")
-                        .and_then(|n| n.try_to::<Gd<RigidBody3D>>().ok())
-                    {
-                        let hit_position = result
-                            .get("position")
-                            .and_then(|v| v.try_to::<Vector3>().ok())
-                            .unwrap_or(from);
-                        body.upcast_mut::<RigidBody3D>()
-                            .apply_impulse((from - hit_position) * -3.0);
+                        // STEP 1: Step toward object (X/Z direction)
+                        let step_dir = (body_pos - player_pos).normalized();
+                        let step_pos = player_pos
+                            + Vector3::new(step_dir.x * 0.8, player_pos.y, step_dir.z * 0.8);
+
+                        // STEP 2: Ray UP from step position to find top surface
+                        let ray_from = step_pos;
+                        let ray_to = step_pos + Vector3::new(0.0, 3.0, 0.0);
+
+                        let mut space_state = self
+                            .base_mut()
+                            .get_world_3d()
+                            .unwrap()
+                            .get_direct_space_state()
+                            .unwrap();
+                        let mut exclude = Array::new();
+                        exclude.push(self.base().get_rid());
+                        // exclude.push(body_rid);
+
+                        let mut ray_query =
+                            PhysicsRayQueryParameters3D::create(ray_from, ray_to).unwrap();
+                        ray_query.set_exclude(&exclude);
+                        let ray_result = space_state.intersect_ray(&ray_query);
+
+                        if !ray_result.is_empty() {
+                            let top_pos = ray_result
+                                .get("position")
+                                .unwrap()
+                                .try_to::<Vector3>()
+                                .unwrap();
+
+                            // STEP 3: Teleport to top surface
+                            let target_pos = Vector3::new(top_pos.x, top_pos.y + 1.0, top_pos.z);
+                            self.base_mut().set_global_position(target_pos);
+                            break;
+                        }
                     }
                 }
             }
         }
+
+        // Shooting/pushing (left click)
+        // if input.is_action_just_pressed("shoot") {
+        //     let camera = self.base().get_node_as::<Camera3D>("Head/Camera");
+        //     let from = camera.get_global_position();
+        //     let to = from - camera.get_global_transform().basis.col_c() * 100.0;
+        //
+        //     let mut space_state = self
+        //         .base_mut()
+        //         .get_world_3d()
+        //         .unwrap()
+        //         .get_direct_space_state()
+        //         .unwrap();
+        //
+        //     if let Some(query) = PhysicsRayQueryParameters3D::create(from, to) {
+        //         let result = space_state.intersect_ray(&query);
+        //         if !result.is_empty() {
+        //             godot_print!("Hit: {:?}", result);
+        //
+        //             if let Some(mut body) = result
+        //                 .get("collider")
+        //                 .and_then(|n| n.try_to::<Gd<RigidBody3D>>().ok())
+        //             {
+        //                 let hit_position = result
+        //                     .get("position")
+        //                     .and_then(|v| v.try_to::<Vector3>().ok())
+        //                     .unwrap_or(from);
+        //                 body.upcast_mut::<RigidBody3D>()
+        //                     .apply_impulse((from - hit_position) * -3.0);
+        //             }
+        //         }
+        //     }
+        // }
     }
 }
