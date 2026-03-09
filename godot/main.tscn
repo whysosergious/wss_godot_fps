@@ -33,9 +33,6 @@ size = Vector3(2, 1, 2)
 [sub_resource type="BoxShape3D" id="BoxShape3D_h2yge"]
 size = Vector3(2, 1, 2)
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_0xm2m"]
-size = Vector3(1, 3, 1)
-
 [sub_resource type="BoxShape3D" id="BoxShape3D_7dm0k"]
 size = Vector3(1, 2, 1)
 
@@ -95,11 +92,9 @@ shape = SubResource("BoxShape3D_h2yge")
 [node name="Player" type="Player" parent="." unique_id=1111676245]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 3.584, 0, 0.007226944)
 
-[node name="ClimbHitbox" type="Area3D" parent="Player" unique_id=1740460357]
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Player/ClimbHitbox" unique_id=1914722976]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.4703484e-08, 2.100883, -1.0441008)
-shape = SubResource("BoxShape3D_0xm2m")
+[node name="ClimbRay" type="RayCast3D" parent="Player" unique_id=1475894307]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, -1.298)
+target_position = Vector3(0, -3.3, 0)
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Player" unique_id=1309413514]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.0526696, 0)
@@ -111,7 +106,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.744073, 0)
 [node name="Camera" type="Camera3D" parent="Player/Head" unique_id=1857015789]
 
 [node name="Hands" type="Node3D" parent="Player/Head" unique_id=1448242996]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.57348806, -0.39865232, -1.0857469)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.57348806, -0.39865232, -1.032099)
 
 [node name="RightHand" type="MeshInstance3D" parent="Player/Head/Hands" unique_id=586165889]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0051995516, 0.006133795, -0.13800049)
