@@ -1,5 +1,6 @@
 use godot::prelude::*;
 
+mod helpers;
 mod player;
 
 struct WssFps;

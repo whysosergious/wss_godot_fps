@@ -9,6 +9,9 @@ use godot::classes::{
 use godot::obj::WithBaseField;
 use godot::prelude::*;
 
+// use godot::global::lerp;
+use crate::helpers::{f32_lerp, vec3_lerp};
+
 #[derive(GodotClass, Debug)]
 #[class(base=CharacterBody3D)]
 struct Player {
@@ -54,6 +57,8 @@ struct Player {
     hands: Option<Gd<Node3D>>,
     hands_base_pos: Vector3,
 
+    player_collision: Option<Gd<CollisionShape3D>>,
+
     // crosshair
     #[export]
     crosshair_visible: bool,
@@ -94,7 +99,21 @@ struct Player {
     // climb and vault
     mantle_target: Vector3,
     climb_ray: Option<Gd<RayCast3D>>,
+    reach_ray: Option<Gd<RayCast3D>>,
     climb_ray_length: f32,
+    is_mantling: bool,
+
+    mantle_progress: f32, // 0.0 → 1.0
+    mantle_start_pos: Vector3,
+    mantle_end_pos: Vector3,
+    look_for_ledge: bool,
+
+    lefthand: Option<Gd<MeshInstance3D>>,
+    lefthand_start_pos: Vector3,
+    lefthand_target_pos: Vector3,
+    lefthand_progress: f32,
+
+    wall_touch_offset: Vector3,
 }
 
 #[godot_api]
@@ -131,6 +150,8 @@ impl ICharacterBody3D for Player {
             hands: None,
             hands_base_pos: Vector3::ZERO,
 
+            player_collision: None,
+
             // crosshair
             crosshair_visible: true,
             crosshair_pos: Vector2::ZERO,
@@ -163,12 +184,36 @@ impl ICharacterBody3D for Player {
             // climb & vault
             mantle_target: Vector3::ZERO,
             climb_ray: None,
+            reach_ray: None,
             climb_ray_length: 3.3,
+            is_mantling: false,
+
+            mantle_progress: 0.0, // 0.0 → 1.0
+            mantle_start_pos: Vector3::ZERO,
+            mantle_end_pos: Vector3::ZERO,
+            look_for_ledge: false,
+
+            lefthand: None,
+            lefthand_start_pos: Vector3::ZERO,
+            lefthand_target_pos: Vector3::ZERO,
+            lefthand_progress: 0.0,
+
+            wall_touch_offset: Vector3::ZERO,
         }
     }
 
     fn ready(&mut self) {
         Input::singleton().set_mouse_mode(MouseMode::HIDDEN);
+
+        self.player_collision = Some(
+            self.base()
+                .get_node_as::<CollisionShape3D>("CollisionShape3D"),
+        );
+
+        self.lefthand = Some(
+            self.base()
+                .get_node_as::<MeshInstance3D>("Head/Hands/LeftHand"),
+        );
 
         let head = self.base().get_node_as::<Node3D>("Head");
 
@@ -202,7 +247,8 @@ impl ICharacterBody3D for Player {
         let head_node = self.base().get_node_as::<Node3D>("Head");
         self.head = Some(head_node);
 
-        self.climb_ray = Some(self.base().get_node_as("ClimbRay"));
+        self.climb_ray = Some(self.base().get_node_as::<RayCast3D>("ClimbRay"));
+        self.reach_ray = Some(self.base().get_node_as::<RayCast3D>("ReachRay"));
 
         godot_print!("Crosshair node: {:?}", self.crosshair_node.is_some());
         godot_print!("Head base pos: {:?}", self.head_base_pos);
@@ -390,11 +436,17 @@ impl ICharacterBody3D for Player {
         let mut velocity = self.base().get_velocity();
 
         if self.base().is_on_floor() {
+            self.look_for_ledge = false;
+
             if Input::singleton().is_action_just_pressed("jump") {
                 velocity.y = self.jump;
             }
         } else {
             velocity.y -= self.gravity * delta as f32;
+        }
+
+        if Input::singleton().is_action_just_pressed("jump") {
+            self.look_for_ledge = true;
         }
 
         // Crouch & crouch toggle
@@ -455,15 +507,56 @@ impl ICharacterBody3D for Player {
             velocity.z *= 0.8;
         }
 
-        self.base_mut().set_velocity(velocity);
-        self.base_mut().move_and_slide();
+        //-----------------------
+        //
+        //
+
+        // Update ReachRay (bottom-left offset in inspector)
+        if let Some(mut reach_ray) = self.reach_ray.take() {
+            reach_ray.force_raycast_update(); // Single frame update
+
+            if reach_ray.is_colliding() {
+                let hit_normal = reach_ray.get_collision_normal();
+                self.wall_touch_offset = hit_normal * -0.4 + Vector3::new(0.0, -0.2, 0.0);
+                godot_print!("{}", hit_normal);
+
+                // Reset to base + offset
+                let base_pos = self
+                    .hands
+                    .as_ref()
+                    .unwrap()
+                    .get_node_as::<Node3D>("LeftHandBase")
+                    .get_position();
+                if let Some(mut hand) = self.lefthand.take() {
+                    hand.set_position(base_pos + self.wall_touch_offset);
+                    self.lefthand = Some(hand);
+                }
+            } else {
+                // Return to base
+                let base_pos = self
+                    .hands
+                    .as_ref()
+                    .unwrap()
+                    .get_node_as::<Node3D>("LeftHandBase")
+                    .get_position();
+                if let Some(mut hand) = self.lefthand.take() {
+                    hand.set_position(base_pos);
+                    self.lefthand = Some(hand);
+                }
+            }
+            self.reach_ray = Some(reach_ray);
+        }
+
+        //
+        //
+        //---------------------------
 
         // *******************************
         // -------------------------------- start wip chunk
         // *******************************
 
         // point and teleport
-        if Input::singleton().is_action_just_pressed("shoot") {
+        if self.look_for_ledge && !self.is_mantling {
             if let Some(mut ray) = self.climb_ray.take() {
                 if self.is_crouching {
                     ray.set_target_position(Vector3::new(0.0, -(self.climb_ray_length * 0.7), 0.0));
@@ -479,16 +572,90 @@ impl ICharacterBody3D for Player {
                     let normal = ray.get_collision_normal();
 
                     if normal.dot(Vector3::new(0.0, 1.0, 0.0)) > 0.7 {
+                        self.player_collision.as_mut().unwrap().set_disabled(true);
+
                         let target_pos = hit_point + Vector3::new(0.0, 0.3, 0.0);
                         self.mantle_target = target_pos;
                         godot_print!("Mantle target: {:?}", target_pos);
 
-                        self.base_mut().set_global_position(target_pos);
+                        self.is_mantling = true;
+                        self.mantle_start_pos = self.base().get_global_position();
+                        self.mantle_end_pos = target_pos;
+                        self.mantle_progress = 0.0;
+                        self.lefthand_start_pos =
+                            self.lefthand.as_ref().unwrap().get_global_position();
+                        self.lefthand_target_pos = hit_point;
+                        self.lefthand_progress = 0.0;
+                        godot_print!("Mantle START");
+                        // self.base_mut().set_global_position(target_pos);
                     }
                 }
 
                 self.climb_ray = Some(ray);
             }
+        }
+
+        if self.is_mantling {
+            velocity = Vector3::ZERO;
+            if self.mantle_progress < 1.0 {
+                self.mantle_progress += delta as f32 * 2.0; // Fast 0.125s transition
+
+                // Lerp: up first, then forward
+                let lift_ratio = (self.mantle_progress * 2.0).min(1.0); // Up phase
+                let forward_ratio = ((self.mantle_progress - 0.5).max(0.0) * 2.0); // Forward phase
+
+                let current_y = f32_lerp(
+                    self.mantle_start_pos.y,
+                    self.mantle_end_pos.y, // Target ledge Y + clearance
+                    lift_ratio,
+                );
+                let current_xz =
+                    vec3_lerp(self.mantle_start_pos, self.mantle_end_pos, forward_ratio);
+
+                self.base_mut().set_global_position(Vector3::new(
+                    current_xz.x,
+                    current_y,
+                    current_xz.z,
+                ));
+
+                godot_print!(
+                    "Mantle progress: {:.1} | Y: {:.2} | Lift: {:.2}",
+                    self.mantle_progress,
+                    current_y,
+                    lift_ratio
+                );
+
+                if self.mantle_progress >= 1.0 {
+                    self.player_collision.as_mut().unwrap().set_disabled(false);
+                    self.is_mantling = false;
+
+                    godot_print!("Mantle END");
+                }
+            }
+
+            // if let (Some(mut collision), target) =
+            //     (self.player_collision.take(), self.mantle_target)
+            // {
+            //     // 1. Disable collision
+            //     collision.set_disabled(true);
+            //
+            //     let current_pos = self.base().get_global_position();
+            //     let lift_pos = Vector3::new(current_pos.x, current_pos.y + 3.5, current_pos.z);
+            //
+            //     // 2. Lift up first
+            //     self.base_mut().set_global_position(lift_pos);
+            //
+            //     // 3. Move to target
+            //     self.base_mut().set_global_position(target);
+            //
+            //     // 4. Re-enable collision
+            //     collision.set_disabled(false);
+            //     self.player_collision = Some(collision);
+            //
+            //     self.is_mantling = false;
+            //     self.mantle_target = Vector3::ZERO;
+            //     godot_print!("Mantle COMPLETE");
+            // }
         }
 
         // *******************************
@@ -527,5 +694,8 @@ impl ICharacterBody3D for Player {
         //         }
         //     }
         // }
+
+        self.base_mut().set_velocity(velocity);
+        self.base_mut().move_and_slide();
     }
 }

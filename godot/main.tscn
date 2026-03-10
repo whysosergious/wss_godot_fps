@@ -92,8 +92,12 @@ shape = SubResource("BoxShape3D_h2yge")
 [node name="Player" type="Player" parent="." unique_id=1111676245]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 3.584, 0, 0.007226944)
 
+[node name="ReachRay" type="RayCast3D" parent="Player" unique_id=696517440]
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, -1, 0, 1, -4.371139e-08, -0.43764102, 2.4811988, -0.096553564)
+target_position = Vector3(0, -1.2, 0)
+
 [node name="ClimbRay" type="RayCast3D" parent="Player" unique_id=1475894307]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, -1.298)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.381903e-09, 4, -1.4977579)
 target_position = Vector3(0, -3.3, 0)
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Player" unique_id=1309413514]
@@ -115,6 +119,9 @@ mesh = SubResource("BoxMesh_ig7tw")
 [node name="LeftHand" type="MeshInstance3D" parent="Player/Head/Hands" unique_id=2055143708]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.017975688, -0.07709336, 0.009564519)
 mesh = SubResource("BoxMesh_h2yge")
+
+[node name="LeftHandBase" type="Node3D" parent="Player/Head/Hands" unique_id=1713713046]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.018, -0.077, 0.01)
 
 [node name="CrosshairLayer" type="CanvasLayer" parent="Player" unique_id=2144846380]
 
