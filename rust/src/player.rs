@@ -509,12 +509,7 @@ impl ICharacterBody3D for Player {
             velocity.z *= 0.8;
         }
 
-        //-----------------------
-        //
-        //
-
         // Update ReachRay (bottom-left offset in inspector)
-
         if let Some(mut reach_ray) = self.reach_ray.take() {
             reach_ray.force_raycast_update();
 
@@ -550,10 +545,6 @@ impl ICharacterBody3D for Player {
             }
             self.reach_ray = Some(reach_ray);
         }
-
-        //
-        //
-        //---------------------------
 
         // *******************************
         // -------------------------------- start wip chunk
@@ -636,30 +627,6 @@ impl ICharacterBody3D for Player {
                     godot_print!("Mantle END");
                 }
             }
-
-            // if let (Some(mut collision), target) =
-            //     (self.player_collision.take(), self.mantle_target)
-            // {
-            //     // 1. Disable collision
-            //     collision.set_disabled(true);
-            //
-            //     let current_pos = self.base().get_global_position();
-            //     let lift_pos = Vector3::new(current_pos.x, current_pos.y + 3.5, current_pos.z);
-            //
-            //     // 2. Lift up first
-            //     self.base_mut().set_global_position(lift_pos);
-            //
-            //     // 3. Move to target
-            //     self.base_mut().set_global_position(target);
-            //
-            //     // 4. Re-enable collision
-            //     collision.set_disabled(false);
-            //     self.player_collision = Some(collision);
-            //
-            //     self.is_mantling = false;
-            //     self.mantle_target = Vector3::ZERO;
-            //     godot_print!("Mantle COMPLETE");
-            // }
         }
 
         // *******************************
