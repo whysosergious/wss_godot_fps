@@ -114,6 +114,7 @@ struct Player {
     lefthand_progress: f32,
 
     wall_touch_offset: Vector3,
+    wall_lerp_t: f32,
 }
 
 #[godot_api]
@@ -199,6 +200,7 @@ impl ICharacterBody3D for Player {
             lefthand_progress: 0.0,
 
             wall_touch_offset: Vector3::ZERO,
+            wall_lerp_t: 0.0,
         }
     }
 
@@ -512,37 +514,39 @@ impl ICharacterBody3D for Player {
         //
 
         // Update ReachRay (bottom-left offset in inspector)
+
         if let Some(mut reach_ray) = self.reach_ray.take() {
-            reach_ray.force_raycast_update(); // Single frame update
+            reach_ray.force_raycast_update();
 
-            if reach_ray.is_colliding() {
-                let hit_normal = reach_ray.get_collision_normal();
-                self.wall_touch_offset = hit_normal * -0.4 + Vector3::new(0.0, -0.2, 0.0);
-                godot_print!("{}", hit_normal);
+            if let Some(mut hand) = self.lefthand.take() {
+                // Add to struct: wall_lerp_t: f32 = 0.0;
 
-                // Reset to base + offset
-                let base_pos = self
-                    .hands
-                    .as_ref()
-                    .unwrap()
-                    .get_node_as::<Node3D>("LeftHandBase")
-                    .get_position();
-                if let Some(mut hand) = self.lefthand.take() {
-                    hand.set_position(base_pos + self.wall_touch_offset);
-                    self.lefthand = Some(hand);
+                if reach_ray.is_colliding() {
+                    let hit_pos = reach_ray.get_collision_point();
+                    self.wall_lerp_t += delta as f32 * 8.0; // Speed 8
+                    self.wall_lerp_t = self.wall_lerp_t.clamp(0.0, 1.0);
+                    let target = self
+                        .hands
+                        .as_ref()
+                        .unwrap()
+                        .get_node_as::<Node3D>("LeftHandBase")
+                        .get_global_position()
+                        .lerp(hit_pos, self.wall_lerp_t);
+                    hand.set_global_position(target);
+                } else {
+                    self.wall_lerp_t -= delta as f32 * 12.0;
+                    self.wall_lerp_t = self.wall_lerp_t.clamp(0.0, 1.0);
+                    let base_pos = self
+                        .hands
+                        .as_ref()
+                        .unwrap()
+                        .get_node_as::<Node3D>("LeftHandBase")
+                        .get_global_position();
+                    let target_pos = base_pos.lerp(hand.get_global_position(), self.wall_lerp_t);
+                    hand.set_global_position(target_pos);
                 }
-            } else {
-                // Return to base
-                let base_pos = self
-                    .hands
-                    .as_ref()
-                    .unwrap()
-                    .get_node_as::<Node3D>("LeftHandBase")
-                    .get_position();
-                if let Some(mut hand) = self.lefthand.take() {
-                    hand.set_position(base_pos);
-                    self.lefthand = Some(hand);
-                }
+
+                self.lefthand = Some(hand);
             }
             self.reach_ray = Some(reach_ray);
         }

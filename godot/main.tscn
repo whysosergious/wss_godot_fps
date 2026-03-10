@@ -93,8 +93,7 @@ shape = SubResource("BoxShape3D_h2yge")
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 3.584, 0, 0.007226944)
 
 [node name="ReachRay" type="RayCast3D" parent="Player" unique_id=696517440]
-transform = Transform3D(1, 0, 0, 0, -4.371139e-08, -1, 0, 1, -4.371139e-08, -0.43764102, 2.4811988, -0.096553564)
-target_position = Vector3(0, -1.2, 0)
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, -1, 0, 1, -4.371139e-08, -0.43764102, 2.259187, -0.096553564)
 
 [node name="ClimbRay" type="RayCast3D" parent="Player" unique_id=1475894307]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.381903e-09, 4, -1.4977579)
