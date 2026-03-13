@@ -1,5 +1,6 @@
 use godot::prelude::*;
 
+mod gun;
 mod helpers;
 mod player;
 

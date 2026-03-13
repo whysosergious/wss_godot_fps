@@ -108,7 +108,7 @@ struct Player {
     mantle_end_pos: Vector3,
     look_for_ledge: bool,
 
-    lefthand: Option<Gd<MeshInstance3D>>,
+    lefthand: Option<Gd<Node3D>>,
     lefthand_start_pos: Vector3,
     lefthand_target_pos: Vector3,
     lefthand_progress: f32,
@@ -163,8 +163,8 @@ impl ICharacterBody3D for Player {
             last_mouse_pos: Vector2::ZERO,
 
             // point hands
-            hands_horizontal_sway: 0.3,
-            hands_vertical_sway: 0.2,
+            hands_horizontal_sway: 0.2,
+            hands_vertical_sway: 0.1,
 
             raycast_distance: 100.0,
             crosshair_world_pos: Vector3::ZERO,
@@ -212,10 +212,7 @@ impl ICharacterBody3D for Player {
                 .get_node_as::<CollisionShape3D>("CollisionShape3D"),
         );
 
-        self.lefthand = Some(
-            self.base()
-                .get_node_as::<MeshInstance3D>("Head/Hands/LeftHand"),
-        );
+        self.lefthand = Some(self.base().get_node_as::<Node3D>("Head/Hands/LeftHand"));
 
         let head = self.base().get_node_as::<Node3D>("Head");
 
@@ -373,16 +370,16 @@ impl ICharacterBody3D for Player {
             let z_distance = if self.hit_something {
                 self.crosshair_world_pos
                     .distance_to(camera_pos)
-                    .clamp(0.2, 0.8)
+                    .clamp(0.0, 0.3)
             } else {
-                0.5
+                0.1
             };
 
             // LOCAL POSITION: Right biased + good sway range
             let hands_local_pos = Vector3::new(
-                sway_x + 0.25, // RIGHT bias + left/right sway
-                sway_y - 0.35, // LOWER bias + up/down sway
-                -z_distance,   // Forward from camera (negative Z local)
+                sway_x + 0.1, // RIGHT bias + left/right sway
+                sway_y - 0.2, // LOWER bias + up/down sway
+                -z_distance,  // Forward from camera (negative Z local)
             );
 
             let new_pos = hands

@@ -1,5 +1,11 @@
 [gd_scene format=3 uid="uid://b4s3qnwq485ds"]
 
+[ext_resource type="PackedScene" uid="uid://dka5wcoof2pcw" path="res://assets/guns/makarov.glb" id="1_ig7tw"]
+[ext_resource type="PackedScene" uid="uid://hx3wwopdghjl" path="res://assets/3_13_2026.glb" id="2_0xm2m"]
+[ext_resource type="PackedScene" uid="uid://cxcxsmwkxxvd0" path="res://assets/hand_r.glb" id="2_1bvp3"]
+[ext_resource type="PackedScene" uid="uid://b8fy3gb1p0ndk" path="res://assets/env/LivingRoom.glb" id="3_h2yge"]
+[ext_resource type="PackedScene" uid="uid://dm0r442i7c7ts" path="res://assets/hand_l.glb" id="3_lquwl"]
+
 [sub_resource type="PanoramaSkyMaterial" id="PanoramaSkyMaterial_7dm0k"]
 
 [sub_resource type="Sky" id="Sky_ig7tw"]
@@ -9,8 +15,8 @@ sky_material = SubResource("PanoramaSkyMaterial_7dm0k")
 background_mode = 2
 sky = SubResource("Sky_ig7tw")
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_lquwl"]
-size = Vector3(0.1, 100, 200)
+[sub_resource type="BoxShape3D" id="BoxShape3D_7dm0k"]
+size = Vector3(1, 2, 1)
 
 [sub_resource type="BoxMesh" id="BoxMesh_7dm0k"]
 size = Vector3(100, 0.1, 100)
@@ -30,67 +36,23 @@ size = Vector3(2, 1, 2)
 [sub_resource type="BoxShape3D" id="BoxShape3D_h2yge"]
 size = Vector3(2, 1, 2)
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_7dm0k"]
-size = Vector3(1, 2, 1)
-
-[sub_resource type="BoxMesh" id="BoxMesh_ig7tw"]
-size = Vector3(0.075, 0.2, 0.4)
-
-[sub_resource type="BoxMesh" id="BoxMesh_h2yge"]
-size = Vector3(0.175, 0.175, 0.175)
-
 [node name="Node3D" type="Node3D" unique_id=1876840914]
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=1210508729]
-transform = Transform3D(0.70710677, -0.49999997, 0.49999997, 0, 0.70710677, 0.70710677, -0.70710677, -0.49999997, 0.49999997, 0, 1, 0)
+transform = Transform3D(0.7071068, -0.5, 0.5, 0, 0.7071068, 0.70710677, -0.7071068, -0.5, 0.5, 0, 5.0617795, 2.695726)
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1155144911]
 environment = SubResource("Environment_0xm2m")
-
-[node name="BGWallNorth" type="StaticBody3D" parent="." unique_id=338298090]
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="BGWallNorth" unique_id=1394325950]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50, 50, 0)
-shape = SubResource("BoxShape3D_lquwl")
-
-[node name="Floor" type="StaticBody3D" parent="." unique_id=106021996]
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="Floor" unique_id=872867013]
-mesh = SubResource("BoxMesh_7dm0k")
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Floor" unique_id=895392283]
-shape = SubResource("BoxShape3D_ig7tw")
-
-[node name="BigBox" type="RigidBody3D" parent="." unique_id=78176276]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -2.9878945)
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="BigBox" unique_id=483566749]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
-mesh = SubResource("BoxMesh_lquwl")
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="BigBox" unique_id=1421778874]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
-shape = SubResource("BoxShape3D_7mycd")
-
-[node name="Table" type="RigidBody3D" parent="." unique_id=249782184]
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="Table" unique_id=1634283830]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
-mesh = SubResource("BoxMesh_0xm2m")
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Table" unique_id=9244072]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
-shape = SubResource("BoxShape3D_h2yge")
 
 [node name="Player" type="Player" parent="." unique_id=1111676245]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 3.584, 0, 0.007226944)
 
 [node name="ReachRay" type="RayCast3D" parent="Player" unique_id=696517440]
-transform = Transform3D(1, 0, 0, 0, -4.371139e-08, -1, 0, 1, -4.371139e-08, -0.43764102, 2.259187, -0.096553564)
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, -1, 0, 1, -4.371139e-08, -0.248, 2.486, 0)
 target_position = Vector3(0, -0.7, 0)
 
 [node name="ClimbRay" type="RayCast3D" parent="Player" unique_id=1475894307]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.381903e-09, 4, -1.4977579)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, -1)
 target_position = Vector3(0, -3.3, 0)
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Player" unique_id=1309413514]
@@ -103,18 +65,22 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.744073, 0)
 [node name="Camera" type="Camera3D" parent="Player/Head" unique_id=1857015789]
 
 [node name="Hands" type="Node3D" parent="Player/Head" unique_id=1448242996]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.57348806, -0.39865232, -1.032099)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.16156793, -0.03291917, -0.46016693)
 
-[node name="RightHand" type="MeshInstance3D" parent="Player/Head/Hands" unique_id=586165889]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0051995516, 0.006133795, -0.13800049)
-mesh = SubResource("BoxMesh_ig7tw")
+[node name="RightHand" type="Node3D" parent="Player/Head/Hands" unique_id=1176791873]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.005, 0.006, 0)
 
-[node name="LeftHand" type="MeshInstance3D" parent="Player/Head/Hands" unique_id=2055143708]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.017975688, -0.07709336, 0.009564519)
-mesh = SubResource("BoxMesh_h2yge")
+[node name="Gun" type="Gun" parent="Player/Head/Hands/RightHand" unique_id=1550306747]
 
-[node name="LeftHandBase" type="Node3D" parent="Player/Head/Hands" unique_id=1713713046]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.018, -0.077, 0.01)
+[node name="makarov" parent="Player/Head/Hands/RightHand/Gun" unique_id=103312681 instance=ExtResource("1_ig7tw")]
+
+[node name="hand_r2" parent="Player/Head/Hands/RightHand" unique_id=940989638 instance=ExtResource("2_1bvp3")]
+
+[node name="LeftHand" parent="Player/Head/Hands" unique_id=416494848 instance=ExtResource("3_lquwl")]
+transform = Transform3D(0.9925144, -0.06654865, 0.10240409, 0.052713543, 0.989803, 0.1323298, -0.11016627, -0.12594117, 0.9859019, 0.0013638437, 0.0024745464, 9.7990036e-05)
+
+[node name="LeftHandBase" type="Node3D" parent="Player/Head/Hands" unique_id=310907084]
+transform = Transform3D(0.6632684, 0.17303866, -0.72810215, -0.33323547, 0.93941766, -0.08030323, 0.6700964, 0.295892, 0.68074864, 0.0053988844, 0.0016524792, 0.0038347244)
 
 [node name="CrosshairLayer" type="CanvasLayer" parent="Player" unique_id=2144846380]
 
@@ -122,3 +88,39 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.018, -0.077, 0.01)
 offset_right = 4.0
 offset_bottom = 4.0
 color = Color(1, 0, 0, 1)
+
+[node name="Floor" type="StaticBody3D" parent="." unique_id=106021996]
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Floor" unique_id=872867013]
+mesh = SubResource("BoxMesh_7dm0k")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Floor" unique_id=895392283]
+shape = SubResource("BoxShape3D_ig7tw")
+
+[node name="BigBox" type="RigidBody3D" parent="." unique_id=78176276]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -5.703043)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="BigBox" unique_id=483566749]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
+mesh = SubResource("BoxMesh_lquwl")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="BigBox" unique_id=1421778874]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
+shape = SubResource("BoxShape3D_7mycd")
+
+[node name="Table" type="RigidBody3D" parent="." unique_id=249782184]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.3171937, 0, -2.2187214)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Table" unique_id=1634283830]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+mesh = SubResource("BoxMesh_0xm2m")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Table" unique_id=9244072]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+shape = SubResource("BoxShape3D_h2yge")
+
+[node name="3_13_2026" parent="." unique_id=307583824 instance=ExtResource("2_0xm2m")]
+transform = Transform3D(1.6649945, 0, 0, 0, 1.4474814, 0, 0, 0, 1, 1.6411424, 0.049999952, -0.50222003)
+
+[node name="LivingRoom" parent="." unique_id=1867723864 instance=ExtResource("3_h2yge")]
+transform = Transform3D(4.9922047, 0.27910757, 0, -0.27910757, 4.9922047, 0, 0, 0, 5.0000005, 3.4677613, -1.0525575, 2.0503109)
